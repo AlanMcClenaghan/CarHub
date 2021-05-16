@@ -10,6 +10,10 @@ import MAKE_FIELD from '@salesforce/schema/Car__c.Make__c';
 const CATEGORY_ERROR = 'Error Loading Categories';
 const MAKE_ERROR = 'Error Loading Makes';
 
+// Lightning Message Service and a message channel
+import { publish, MessageContext } from 'lightning/messageService';
+import CARS_FILTERED_MESSAGE from '@salesforce/messageChannel/CarsFiltered__c';
+
 
 export default class CarFilter extends LightningElement {
 
@@ -20,6 +24,11 @@ export default class CarFilter extends LightningElement {
 
     categoryError = CATEGORY_ERROR;
     makeError = MAKE_ERROR;
+    timer
+
+    // Load context for LMS
+    @wire(MessageContext)
+    messageContext
 
     // Fetching Car object
     @wire(getObjectInfo, {objectApiName:CAR_OBJECT})
@@ -31,7 +40,7 @@ export default class CarFilter extends LightningElement {
         fieldApiName:CATEGORY_FIELD
     })categories
 
-    // Fetching Make Picklist
+    // Fetching Makes Picklist
     @wire(getPicklistValues, {
         recordTypeId:'$carObjectInfo.data.defaultRecordTypeId',
         fieldApiName:MAKE_FIELD
@@ -41,18 +50,42 @@ export default class CarFilter extends LightningElement {
     handleSearchKeyChange(event) {
         console.log(event.target.value);
         this.filters = {...this.filters, "searchKey":event.target.value};
+        this.sendDataToCarList();
     }
 
     // Price Change handler
     handleMaxPriceChange(event) {
         console.log(event.target.value);
         this.filters = {...this.filters, "maxPrice":event.target.value};
+        this.sendDataToCarList();
     }
 
     handleCheckboxChange(event) {
-        const {name,value} = event.target.dataset;
-        console.log("name: ", name);
-        console.log("value: ", value);
+        if (!this.filters.categories) {
+            const categories = this.categories.data.values.map(item=>item.value);
+            const makes = this.makes.data.values.map(item=>item.value);
+            this.filters = {...this.filters, categories, makes};
+        }
+        const {name, value} = event.target.dataset;
+        // console.log("name: ", name);
+        // console.log("value: ", value);
+        if (event.target.checked) {
+            if (!this.filters[name].includes(value)) {
+                this.filters[name] = [...this.filters[name], value]
+            } else {
+                this.filters[name] = this.filters[name].filter(item=>item !==value)
+            }
+        }
+        this.sendDataToCarList();
     }
 
+    sendDataToCarList() {
+        window.clearTimeout(this.timer)
+        this.timer = window.setTimeout(()=>{
+            publish(this.messageContext, CARS_FILTERED_MESSAGE, {
+                filters:this.filters
+            }) 
+        }, 400)
+        
+    }
 }

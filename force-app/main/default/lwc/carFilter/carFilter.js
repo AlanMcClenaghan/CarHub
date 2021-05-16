@@ -69,14 +69,16 @@ export default class CarFilter extends LightningElement {
         const {name, value} = event.target.dataset;
         // console.log("name: ", name);
         // console.log("value: ", value);
-        if (event.target.checked) {
-            if (!this.filters[name].includes(value)) {
+        
+        if(event.target.checked){
+            if(!this.filters[name].includes(value)){
                 this.filters[name] = [...this.filters[name], value]
-            } else {
-                this.filters[name] = this.filters[name].filter(item=>item !==value)
             }
+        } else {
+            this.filters[name] =  this.filters[name].filter(item=>item !==value)
         }
-        this.sendDataToCarList();
+        this.sendDataToCarList()
+
     }
 
     sendDataToCarList() {

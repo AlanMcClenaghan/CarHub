@@ -1,6 +1,10 @@
 import { LightningElement, wire } from 'lwc';
 
+//Navigation
+import {NavigationMixin} from 'lightning/navigation';
+
 //Car__c Schema
+import CAR_OBJECT from '@salesforce/schema/Car__c';
 import NAME_FIELD from '@salesforce/schema/Car__c.Name';
 import PICTURE_URL_FIELD from '@salesforce/schema/Car__c.Picture_URL__c';
 import CATEGORY_FIELD from '@salesforce/schema/Car__c.Category__c';
@@ -17,7 +21,7 @@ import {getFieldValue} from 'lightning/uiRecordApi';
 import {subscribe, MessageContext, unsubscribe} from 'lightning/messageService';
 import CAR_SELECTED_MESSAGE from '@salesforce/messageChannel/CarSelected__c';
 
-export default class CarCard extends LightningElement {
+export default class CarCard extends NavigationMixin(LightningElement) {
 
     // load content for LMS
     @wire(MessageContext)
@@ -35,11 +39,11 @@ export default class CarCard extends LightningElement {
     recordId;
 
     // car fields displayed with specific format
-    carName
-    carPictureUrl
+    carName;
+    carPictureUrl;
 
     //subscription reference for carSelected
-    carSelectionSubscription 
+    carSelectionSubscription;
 
     handleRecordLoaded(event){
         const {records} = event.detail
@@ -53,15 +57,28 @@ export default class CarCard extends LightningElement {
     }
 
     subscribeHandler(){
-        this.carSelectionSubscription = subscribe(this.messageContext, CAR_SELECTED_MESSAGE, (message)=>this.handleCarSelected(message));
+        this.carSelectionSubscription = subscribe(this.messageContext, CAR_SELECTED_MESSAGE, (message)=>this.handleCarSelected(message))
     }
+
     handleCarSelected(message){
-        this.recordId = message.carId;
+        this.recordId = message.carId
     }
 
     disconnectedCallback(){
         unsubscribe(this.carSelectionSubscription)
-        this.carSelectionSubscription = null;
+        this.carSelectionSubscription = null
+    }
+
+     /**navigate to record page */
+     handleNavigateToRecord(){
+        this[NavigationMixin.Navigate]({
+            type:'standard__recordPage',
+            attributes:{
+                recordId:this.recordId,
+                objectApiName:CAR_OBJECT.objectApiName,
+                actionName:'view'
+            }
+        })
     }
 
 }
